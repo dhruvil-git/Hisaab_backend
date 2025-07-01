@@ -1,14 +1,16 @@
 import { PrismaClient } from "@prisma/client";
 import Decimal from "decimal.js";
 
+
+type DecimalType = InstanceType<typeof Decimal>;
 const prisma = new PrismaClient();
 
-export async function AddTransaction(username: string, to: string, amt: Decimal, desc: string) {
+export async function AddTransaction(username: string, to: string, amt: DecimalType, desc: string) {
     const trans = await prisma.transaction.create({
         data: {
             userId: username,
             Lend: false,
-            Amount: amt,
+            Amount: amt.toNumber(),
             To: to,
             Description: desc,
         }
@@ -16,7 +18,7 @@ export async function AddTransaction(username: string, to: string, amt: Decimal,
 }
 
 
-export async function LendTrans(From: string, username: string, to: string, amt: Decimal, desc: string) {
+export async function LendTrans(From: string, username: string, to: string, amt: DecimalType, desc: string) {
     From = From.toLowerCase();
     to = to.toLowerCase();
 
@@ -26,7 +28,7 @@ export async function LendTrans(From: string, username: string, to: string, amt:
                 data: {
                     userId: username,
                     Lend: false,
-                    Amount: amt,
+                    Amount: amt.toNumber(),
                     To: to,
                     Description: desc,
                 }
@@ -56,7 +58,7 @@ export async function LendTrans(From: string, username: string, to: string, amt:
             data: {
                 userId: username,
                 Lend: true,
-                Amount: amt,
+                Amount: amt.toNumber(),
                 To: to,
                 Description: desc,
             }

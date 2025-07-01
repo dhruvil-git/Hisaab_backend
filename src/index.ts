@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import bcrypt from "bcrypt";
@@ -23,12 +23,13 @@ app.get('/', (req, res) => {
   res.send("Hisaab API running!");
 });
 
-app.get('/settlement', async (req, res) => {
+app.get('/settlement', async (req: Request, res: Response): Promise<void> => {
   const authHeader = req.headers.authorization;
   const token = authHeader?.split(" ")[1];
 
   if (!token) {
-    return res.status(401).json({ error: "Missing token" });
+    res.status(401).json({ error: "Missing token" });
+    return;
   }
 
   try {
@@ -36,7 +37,8 @@ app.get('/settlement', async (req, res) => {
     const username = typeof payload === "object" && (payload as jwt.JwtPayload)?.username;
 
     if (!username) {
-      return res.status(403).json({ error: "Invalid token payload" });
+      res.status(403).json({ error: "Invalid token payload" });
+      return;
     }
 
     const data = await prisma.others.findMany({
@@ -48,23 +50,26 @@ app.get('/settlement', async (req, res) => {
       },
     });
 
-    return res.status(200).json(data);
+    res.status(200).json(data);
+    return;
   } catch (err) {
     console.error("JWT error:", err);
-    return res.status(403).json({ error: "Invalid token" });
+    res.status(403).json({ error: "Invalid token" });
+    return;
   }
 });
 
 
 
-app.post('/login', async (req, res) => {
+app.post('/login', async (req: Request, res: Response) : Promise<void> => {
   const { email, username, password } = req.body;
 
   try {
     const user = await ValidateUser(password, email, username);
 
     if (!user) {
-      return res.status(401).json({ error: "Invalid Credentials" });
+      res.status(401).json({ error: "Invalid Credentials" });
+      return;
     }
 
     const token = GenerateToken(user);
@@ -86,28 +91,30 @@ app.post('/login', async (req, res) => {
 
 
 
-app.post('/logout', async (req, res) => {
+app.post('/logout', async (req: Request, res: Response) : Promise<void> => {
   try {
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       message: "Logged out successfully",
     });
 
   } catch (error) {
     console.error("Logout Error:", error);
-    return res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ error: "Internal Server Error" });
+    return;
   }
 });
 
 
 
-app.patch('/profile/password', async (req, res) => {
+app.patch('/profile/password', async (req: Request, res: Response) : Promise<void> => {
   const authHeader = req.headers.authorization;
   const token = authHeader?.split(" ")[1];
 
   if (!token) {
-    return res.status(401).json({ error: "Missing token" });
+    res.status(401).json({ error: "Missing token" });
+    return;
   }
 
   try {
@@ -115,19 +122,22 @@ app.patch('/profile/password', async (req, res) => {
 
     const username = payload?.username;
     if (!username) {
-      return res.status(403).json({ error: "Invalid token" });
+      res.status(403).json({ error: "Invalid token" });
+      return;
     }
 
     const { oldPass, newPass } = req.body;
 
     if (!oldPass || !newPass) {
-      return res.status(400).json({ error: "Both passwords are required" });
+      res.status(400).json({ error: "Both passwords are required" });
+      return;
     }
 
     const user = await prisma.user.findFirst({ where: { username } });
 
     if (!user || !(await bcrypt.compare(oldPass, user.password))) {
-      return res.status(403).json({ error: "Incorrect current password" });
+      res.status(403).json({ error: "Incorrect current password" });
+      return;
     }
 
     const hashedPassword = await bcrypt.hash(newPass, saltRounds);
@@ -137,22 +147,25 @@ app.patch('/profile/password', async (req, res) => {
       data: { password: hashedPassword },
     });
 
-    return res.status(200).json({ success: true });
+    res.status(200).json({ success: true });
+    return;
   } catch (err) {
     console.error("Password change error:", err);
-    return res.status(500).json({ error: "Internal error" });
+    res.status(500).json({ error: "Internal error" });
+    return;
   }
 
 });
 
 
 
-app.patch('/profile/name', async (req, res) => {
+app.patch('/profile/name', async (req: Request, res: Response) : Promise<void> => {
   const authHeader = req.headers.authorization;
   const token = authHeader?.split(" ")[1];
 
   if (!token) {
-    return res.status(401).json({ error: "Missing token" });
+    res.status(401).json({ error: "Missing token" });
+    return;
   }
 
   try {
@@ -160,13 +173,15 @@ app.patch('/profile/name', async (req, res) => {
     const username = payload?.username;
 
     if (!username) {
-      return res.status(403).json({ error: "Invalid token" });
+      res.status(403).json({ error: "Invalid token" });
+      return;
     }
 
     const { newName } = req.body;
 
     if (!newName || typeof newName !== "string") {
-      return res.status(400).json({ error: "Invalid name" });
+      res.status(400).json({ error: "Invalid name" });
+      return;
     }
 
     const updatedUser = await prisma.user.update({
@@ -174,21 +189,24 @@ app.patch('/profile/name', async (req, res) => {
       data: { name: newName },
     });
 
-    return res.status(200).json({ success: true, name: updatedUser.name });
+    res.status(200).json({ success: true, name: updatedUser.name });
+    return;
   } catch (err) {
     console.error("Name update error:", err);
-    return res.status(500).json({ error: "Internal error" });
+    res.status(500).json({ error: "Internal error" });
+    return;
   }
 });
 
 
 
-app.get('/profile', async (req, res) => {
+app.get('/profile', async (req: Request, res: Response) : Promise<void> => {
   const authHeader = req.headers.authorization;
   const token = authHeader?.split(" ")[1];
 
   if (!token) {
-    return res.status(401).json({ error: "Missing token" });
+    res.status(401).json({ error: "Missing token" });
+    return;
   }
 
   try {
@@ -196,7 +214,8 @@ app.get('/profile', async (req, res) => {
     const username = payload?.username;
 
     if (!username) {
-      return res.status(403).json({ error: "Invalid token" });
+      res.status(403).json({ error: "Invalid token" });
+      return;
     }
 
     const user = await prisma.user.findFirst({
@@ -209,20 +228,23 @@ app.get('/profile', async (req, res) => {
       },
     });
 
-    return res.status(200).json(user);
+    res.status(200).json(user);
+    return;
   } catch (err) {
     console.error("Token verification error:", err);
-    return res.status(403).json({ error: "Invalid token" });
+    res.status(403).json({ error: "Invalid token" });
+    return;
   }
 });
 
 
 
-app.post('/sendotp', async (req, res) => {
+app.post('/sendotp', async (req: Request, res: Response) : Promise<void> => {
   const { email, otp } = req.body;
 
   if (!email || !otp) {
-    return res.status(400).json({ success: false, error: "Missing fields" });
+    res.status(400).json({ success: false, error: "Missing fields" });
+    return;
   }
 
   const transporter = nodemailer.createTransport({
@@ -252,25 +274,29 @@ app.post('/sendotp', async (req, res) => {
 
   try {
     await transporter.sendMail(mailOptions);
-    return res.status(200).json({ success: true });
+    res.status(200).json({ success: true });
+    return;
   } catch (error) {
     console.error("Email sending error:", error);
-    return res.status(500).json({ success: false, error: "Email send failed" });
+    res.status(500).json({ success: false, error: "Email send failed" });
+    return;
   }
 });
 
 
 
-app.post('/signup', async (req, res) => {
+app.post('/signup', async (req: Request, res: Response) : Promise<void> => {
   const { name, email, username, password } = req.body;
 
   try {
     if (await CheckUsername(username)) {
-      return res.status(401).json({ error: "Username not available" });
+      res.status(401).json({ error: "Username not available" });
+      return;
     }
 
     if (await CheckEmail(email)) {
-      return res.status(401).json({ error: "Email Id already registered" });
+      res.status(401).json({ error: "Email Id already registered" });
+      return;
     }
 
     await CreateUser(name, email, username, password);
@@ -278,12 +304,13 @@ app.post('/signup', async (req, res) => {
     const user = await ValidateUser(password, email, username);
 
     if (!user) {
-      return res.status(401).json({ error: "Auto-login failed after registration" });
+      res.status(401).json({ error: "Auto-login failed after registration" });
+      return;
     }
 
     const token = GenerateToken(user);
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       token,
       user: {
@@ -294,20 +321,22 @@ app.post('/signup', async (req, res) => {
     });
   } catch (error) {
     console.error("Registration error:", error);
-    return res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ error: "Internal Server Error" });
+    return;
   }
 
 });
 
 
 
-app.post('/trans', async (req, res) => {
+app.post('/trans', async (req: Request, res: Response) : Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
     const token = authHeader?.split(" ")[1];
 
     if (!token) {
-      return res.status(401).json({ success: false, error: "No auth token provided" });
+      res.status(401).json({ success: false, error: "No auth token provided" });
+      return;
     }
 
     let username: string | undefined;
@@ -317,43 +346,50 @@ app.post('/trans', async (req, res) => {
         username = (payload as jwt.JwtPayload).username as string;
       }
     } catch {
-      return res.status(403).json({ success: false, error: "Invalid or expired token" });
+      res.status(403).json({ success: false, error: "Invalid or expired token" });
+      return;
     }
 
     if (!username) {
-      return res.status(400).json({ success: false, error: "Username not found in token" });
+      res.status(400).json({ success: false, error: "Username not found in token" });
+      return;
     }
 
     const { trans, From, to, amt, desc } = req.body;
 
     if (!to || !amt || isNaN(Number(amt))) {
-      return res.status(400).json({ success: false, error: "Missing or invalid parameters" });
+      res.status(400).json({ success: false, error: "Missing or invalid parameters" });
+      return;
     }
 
     if (trans) {
       await AddTransaction(username, to, amt, desc || "");
     } else {
       if (!From) {
-        return res.status(400).json({ success: false, error: "Missing 'From' in lend transaction" });
+        res.status(400).json({ success: false, error: "Missing 'From' in lend transaction" });
+        return;
       }
       await LendTrans(From, username, to, amt, desc || "");
     }
 
-    return res.status(200).json({ success: true });
+    res.status(200).json({ success: true });
+    return;
   } catch (err) {
     console.error("Transaction error:", err);
-    return res.status(500).json({ success: false, error: "Internal Server Error" });
+    res.status(500).json({ success: false, error: "Internal Server Error" });
+    return;
   }
 });
 
 
 
-app.get('/transactions', async (req, res) => {
+app.get('/transactions', async (req: Request, res: Response) : Promise<void> => {
   const authHeader = req.headers.authorization;
   const token = authHeader?.split(" ")[1];
 
   if (!token) {
-    return res.status(401).json({ error: "Missing token" });
+    res.status(401).json({ error: "Missing token" });
+    return;
   }
 
   try {
@@ -361,7 +397,8 @@ app.get('/transactions', async (req, res) => {
     const username = typeof payload === "object" && (payload as jwt.JwtPayload)?.username;
 
     if (!username) {
-      return res.status(403).json({ error: "Invalid token payload" });
+      res.status(403).json({ error: "Invalid token payload" });
+      return;
     }
 
     const data = await prisma.transaction.findMany({
@@ -369,21 +406,24 @@ app.get('/transactions', async (req, res) => {
       orderBy: { Time: "desc" },
     });
 
-    return res.status(200).json(data);
+    res.status(200).json(data);
+    return;
   } catch (err) {
     console.error("JWT error:", err);
-    return res.status(403).json({ error: "Invalid token" });
+    res.status(403).json({ error: "Invalid token" });
+    return;
   }
 });
 
 
 
-app.get('/users', async (req, res) => {
+app.get('/users', async (req: Request, res: Response) : Promise<void> => {
   const authHeader = req.headers.authorization;
   const token = authHeader?.split(" ")[1];
 
   if (!token) {
-    return res.status(401).json({ error: "Missing token" });
+    res.status(401).json({ error: "Missing token" });
+    return;
   }
 
   try {
@@ -391,14 +431,17 @@ app.get('/users', async (req, res) => {
     const username = payload.username as string | undefined;
 
     if (!username) {
-      return res.status(403).json({ error: "Username not found in token" });
+      res.status(403).json({ error: "Username not found in token" });
+      return;
     }
 
     const users = await db(username);
-    return res.status(200).json(users);
+    res.status(200).json(users);
+    return;
   } catch (e) {
     console.error("JWT verification failed:", e);
-    return res.status(403).json({ error: "Invalid or expired token" });
+    res.status(403).json({ error: "Invalid or expired token" });
+    return;
   }
 })
 
